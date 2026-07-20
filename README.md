@@ -17,7 +17,7 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+Real-world recommenders like Spotify and YouTube predict what you'll love next by combining a few core ideas: **collaborative filtering** ("people with taste like yours also liked this"), **content-based filtering** ("this song sounds like things you already play"), and **implicit feedback** from your behavior — skips, replays, and how long you listen. Modern platforms stack these into a pipeline that first narrows millions of songs down to a handful of candidates, then ranks them using deep-learning models that also weigh context like time of day and listening history. My version is a small, transparent **content-based** recommender: instead of learning from a crowd, it scores each song by how well its features (genre, mood, energy, and acousticness) match a user's stated taste profile, then ranks the results and shows the top matches. I prioritize **explainability and simplicity over accuracy at scale** — every recommendation comes with a plain-language reason, so it's easy to see *why* a song was chosen rather than treating the system as a black box.
 
 Some prompts to answer:
 
