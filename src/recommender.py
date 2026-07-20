@@ -47,15 +47,7 @@ class Recommender:
         return "Explanation placeholder"
 
 def load_songs(csv_path: str) -> List[Dict]:
-    """
-    Loads songs from a CSV file into a list of dictionaries.
-
-    Numeric columns are converted from strings so the scoring logic can do
-    math on them later: `id` and `tempo_bpm` become ints, and the 0-1 audio
-    features become floats. Everything else stays a string.
-
-    Required by src/main.py
-    """
+    """Load songs from a CSV into a list of dicts, converting numeric fields to int/float."""
     int_fields = {"id", "tempo_bpm"}
     float_fields = {"energy", "valence", "danceability", "acousticness"}
 
@@ -74,22 +66,7 @@ def load_songs(csv_path: str) -> List[Dict]:
     return songs
 
 def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
-    """
-    Scores a single song against user preferences (the Algorithm Recipe).
-
-    Points are additive, starting from 0 (max possible = 5.0):
-      - Genre match      : +2.0
-      - Mood match       : +1.0
-      - Energy similarity : up to +1.5, based on how CLOSE the song's energy
-                            is to the target (rewards nearness, not magnitude)
-      - Acoustic fit      : up to +0.5
-
-    Returns a tuple of (score, reasons), where `reasons` is a list of
-    human-readable strings explaining which rules fired and how many points
-    they awarded (e.g. "genre match: lofi (+2.0)").
-
-    Required by recommend_songs() and src/main.py
-    """
+    """Score one song against user prefs, returning (score, reasons) per the Algorithm Recipe."""
     score = 0.0
     reasons: List[str] = []
 
@@ -126,10 +103,14 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     return score, reasons
 
 def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
-    """
-    Functional implementation of the recommendation logic.
-    Required by src/main.py
-    """
-    # TODO: Implement scoring and ranking logic
-    # Expected return format: (song_dict, score, explanation)
-    return []
+    """Score all songs and return the top k as (song, score, explanation), highest first."""
+    # Process: judge every song independently
+    scored = []
+    for song in songs:
+        score, reasons = score_song(user_prefs, song)
+        explanation = "; ".join(reasons) if reasons else "no strong matches"
+        scored.append((song, score, explanation))
+
+    # Output: rank by score (highest first) and keep the top k
+    ranked = sorted(scored, key=lambda item: item[1], reverse=True)
+    return ranked[:k]
