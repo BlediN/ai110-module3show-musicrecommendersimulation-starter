@@ -174,11 +174,274 @@ Top 5 recommendations
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+### Stress test with diverse and adversarial profiles
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+I ran `python -m src.main` against six user profiles: three realistic "normal" tastes and three adversarial / edge cases designed to try to trick the scoring logic. Each block below is the actual terminal output (top 5 recommendations, scores, and reasons).
+
+**1. High-Energy Pop** — behaves as expected: the pop/happy song wins outright, and a same-genre (pop/intense) song beats a same-mood (indie pop/happy) song, confirming genre outweighs mood.
+
+```
+================================================================
+PROFILE: High-Energy Pop
+================================================================
+Preferences: {'favorite_genre': 'pop', 'favorite_mood': 'happy', 'target_energy': 0.9, 'likes_acoustic': False}
+
+Top 5 recommendations:
+
+1. Sunrise City  by Neon Echo  [pop / happy]
+   Score: 4.79
+   Reasons:
+     - genre match: pop (+2.0)
+     - mood match: happy (+1.0)
+     - energy close to 0.9 (+1.38)
+     - non-acoustic feel (+0.41)
+
+2. Gym Hero  by Max Pulse  [pop / intense]
+   Score: 3.93
+   Reasons:
+     - genre match: pop (+2.0)
+     - energy close to 0.9 (+1.46)
+     - non-acoustic feel (+0.47)
+
+3. Rooftop Lights  by Indigo Parade  [indie pop / happy]
+   Score: 2.62
+   Reasons:
+     - mood match: happy (+1.0)
+     - energy close to 0.9 (+1.29)
+     - non-acoustic feel (+0.33)
+
+4. Neon Horizon  by Pulsewave  [electronic / uplifting]
+   Score: 1.96
+   Reasons:
+     - energy close to 0.9 (+1.48)
+     - non-acoustic feel (+0.47)
+
+5. Storm Runner  by Voltline  [rock / intense]
+   Score: 1.93
+   Reasons:
+     - energy close to 0.9 (+1.48)
+     - non-acoustic feel (+0.45)
+```
+
+**2. Chill Lofi** — the two lofi/chill tracks lead, then lofi/focused, then cross-genre chill/relaxed songs fill the remaining slots on mood + energy + acoustic fit.
+
+```
+================================================================
+PROFILE: Chill Lofi
+================================================================
+Preferences: {'favorite_genre': 'lofi', 'favorite_mood': 'chill', 'target_energy': 0.35, 'likes_acoustic': True}
+
+Top 5 recommendations:
+
+1. Library Rain  by Paper Lanterns  [lofi / chill]
+   Score: 4.93
+   Reasons:
+     - genre match: lofi (+2.0)
+     - mood match: chill (+1.0)
+     - energy close to 0.35 (+1.50)
+     - acoustic feel (+0.43)
+
+2. Midnight Coding  by LoRoom  [lofi / chill]
+   Score: 4.75
+   Reasons:
+     - genre match: lofi (+2.0)
+     - mood match: chill (+1.0)
+     - energy close to 0.35 (+1.40)
+     - acoustic feel (+0.35)
+
+3. Focus Flow  by LoRoom  [lofi / focused]
+   Score: 3.81
+   Reasons:
+     - genre match: lofi (+2.0)
+     - energy close to 0.35 (+1.42)
+     - acoustic feel (+0.39)
+
+4. Spacewalk Thoughts  by Orbit Bloom  [ambient / chill]
+   Score: 2.85
+   Reasons:
+     - mood match: chill (+1.0)
+     - energy close to 0.35 (+1.40)
+     - acoustic feel (+0.46)
+
+5. Coffee Shop Stories  by Slow Stereo  [jazz / relaxed]
+   Score: 1.92
+   Reasons:
+     - energy close to 0.35 (+1.47)
+     - acoustic feel (+0.45)
+```
+
+**3. Deep Intense Rock** — rock/intense wins with a perfect-ish score; note the mood-matching pop/intense song beats several high-energy songs that match neither genre nor mood.
+
+```
+================================================================
+PROFILE: Deep Intense Rock
+================================================================
+Preferences: {'favorite_genre': 'rock', 'favorite_mood': 'intense', 'target_energy': 0.9, 'likes_acoustic': False}
+
+Top 5 recommendations:
+
+1. Storm Runner  by Voltline  [rock / intense]
+   Score: 4.93
+   Reasons:
+     - genre match: rock (+2.0)
+     - mood match: intense (+1.0)
+     - energy close to 0.9 (+1.48)
+     - non-acoustic feel (+0.45)
+
+2. Gym Hero  by Max Pulse  [pop / intense]
+   Score: 2.93
+   Reasons:
+     - mood match: intense (+1.0)
+     - energy close to 0.9 (+1.46)
+     - non-acoustic feel (+0.47)
+
+3. Neon Horizon  by Pulsewave  [electronic / uplifting]
+   Score: 1.96
+   Reasons:
+     - energy close to 0.9 (+1.48)
+     - non-acoustic feel (+0.47)
+
+4. Concrete Verses  by Aze Marlo  [hip-hop / energetic]
+   Score: 1.88
+   Reasons:
+     - energy close to 0.9 (+1.42)
+     - non-acoustic feel (+0.46)
+
+5. Iron Verdict  by Ashen Forge  [metal / aggressive]
+   Score: 1.88
+   Reasons:
+     - energy close to 0.9 (+1.40)
+     - non-acoustic feel (+0.48)
+```
+
+### Adversarial / edge cases
+
+**4. Conflicting — "Calm Acoustic Metal"** (genre=metal, mood=romantic, target_energy=0.1, likes_acoustic=True). **This one tricks the system.** Iron Verdict (metal/*aggressive*, energy 0.97, acousticness 0.03) still ranks #1 — purely on the flat +2.0 genre bonus — even though it violates *every* other stated preference (it's loud and non-acoustic when the user asked for calm and acoustic). This is the clearest demonstration of the **genre over-prioritization bias**: a single categorical match can outweigh three contradicting signals.
+
+```
+================================================================
+PROFILE: Conflicting: Calm Acoustic Metal
+================================================================
+Preferences: {'favorite_genre': 'metal', 'favorite_mood': 'romantic', 'target_energy': 0.1, 'likes_acoustic': True}
+
+Top 5 recommendations:
+
+1. Iron Verdict  by Ashen Forge  [metal / aggressive]
+   Score: 2.21
+   Reasons:
+     - genre match: metal (+2.0)
+     - energy close to 0.1 (+0.20)
+     - acoustic feel (+0.01)
+
+2. Velvet Hours  by Sable Rose  [r&b / romantic]
+   Score: 2.07
+   Reasons:
+     - mood match: romantic (+1.0)
+     - energy close to 0.1 (+0.90)
+     - acoustic feel (+0.17)
+
+3. Elegy in Grey  by Halden Quartet  [classical / melancholy]
+   Score: 1.77
+   Reasons:
+     - energy close to 0.1 (+1.29)
+     - acoustic feel (+0.47)
+
+4. Spacewalk Thoughts  by Orbit Bloom  [ambient / chill]
+   Score: 1.69
+   Reasons:
+     - energy close to 0.1 (+1.23)
+     - acoustic feel (+0.46)
+
+5. Library Rain  by Paper Lanterns  [lofi / chill]
+   Score: 1.55
+   Reasons:
+     - energy close to 0.1 (+1.12)
+     - acoustic feel (+0.43)
+```
+
+**5. Unknown Genre & Mood** (genre=kpop, mood=euphoric — neither exists in the catalog). The genre and mood rules never fire, so ranking silently collapses to energy + acoustic only. The system still returns 5 confident-looking results with no signal that it found nothing matching the user's actual genre/mood taste — a **graceful-but-silent degradation** risk.
+
+```
+================================================================
+PROFILE: Unknown Genre & Mood
+================================================================
+Preferences: {'favorite_genre': 'kpop', 'favorite_mood': 'euphoric', 'target_energy': 0.6, 'likes_acoustic': False}
+
+Top 5 recommendations:
+
+1. Velvet Hours  by Sable Rose  [r&b / romantic]
+   Score: 1.68
+   Reasons:
+     - energy close to 0.6 (+1.35)
+     - non-acoustic feel (+0.33)
+
+2. Night Drive Loop  by Neon Echo  [synthwave / moody]
+   Score: 1.67
+   Reasons:
+     - energy close to 0.6 (+1.27)
+     - non-acoustic feel (+0.39)
+
+3. Dust Road Home  by Clay Hollow  [country / nostalgic]
+   Score: 1.60
+   Reasons:
+     - energy close to 0.6 (+1.41)
+     - non-acoustic feel (+0.18)
+
+4. Rooftop Lights  by Indigo Parade  [indie pop / happy]
+   Score: 1.58
+   Reasons:
+     - energy close to 0.6 (+1.26)
+     - non-acoustic feel (+0.33)
+
+5. Concrete Verses  by Aze Marlo  [hip-hop / energetic]
+   Score: 1.58
+   Reasons:
+     - energy close to 0.6 (+1.12)
+     - non-acoustic feel (+0.46)
+```
+
+**6. Sparse — "Energy Only"** (only target_energy=1.0 provided). Confirms the scoring is **robust to missing keys**: the genre/mood/acoustic rules simply don't fire, and songs rank purely by energy closeness (highest-energy songs win). No crash despite three of four preferences being absent.
+
+```
+================================================================
+PROFILE: Sparse: Energy Only
+================================================================
+Preferences: {'target_energy': 1.0}
+
+Top 5 recommendations:
+
+1. Iron Verdict  by Ashen Forge  [metal / aggressive]
+   Score: 1.46
+   Reasons:
+     - energy close to 1.0 (+1.46)
+
+2. Gym Hero  by Max Pulse  [pop / intense]
+   Score: 1.40
+   Reasons:
+     - energy close to 1.0 (+1.40)
+
+3. Storm Runner  by Voltline  [rock / intense]
+   Score: 1.36
+   Reasons:
+     - energy close to 1.0 (+1.36)
+
+4. Neon Horizon  by Pulsewave  [electronic / uplifting]
+   Score: 1.33
+   Reasons:
+     - energy close to 1.0 (+1.33)
+
+5. Concrete Verses  by Aze Marlo  [hip-hop / energetic]
+   Score: 1.27
+   Reasons:
+     - energy close to 1.0 (+1.27)
+```
+
+### What the stress test revealed
+
+- **Normal profiles behave correctly** — the right songs surface, and the genre > mood > energy > acoustic priority is visible in the rankings.
+- **Genre over-prioritization is real** (profile 4): a flat +2.0 genre bonus can override an energy/mood/acoustic combination that all point the other way. A future fix could scale the genre bonus by how well the other features agree, or cap a song's score when it strongly contradicts stated preferences.
+- **No "no good match" signal** (profile 5): when nothing matches a user's genre/mood, the system still returns a full top-5 as if confident. A confidence threshold or a "no strong matches found" message would be more honest.
+- **The scoring is robust** (profile 6): partial/sparse profiles don't crash — missing preferences just skip their rule.
 
 ---
 
