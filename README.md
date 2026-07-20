@@ -443,6 +443,19 @@ Top 5 recommendations:
 - **No "no good match" signal** (profile 5): when nothing matches a user's genre/mood, the system still returns a full top-5 as if confident. A confidence threshold or a "no strong matches found" message would be more honest.
 - **The scoring is robust** (profile 6): partial/sparse profiles don't crash — missing preferences just skip their rule.
 
+### Weight-shift experiment: energy ×2, genre ÷2
+
+To test the system's sensitivity, I temporarily changed two weights in `score_song()` — **halved the genre bonus (2.0 → 1.0)** and **doubled the energy multiplier (1.5 → 3.0)** — then reverted to the finalized recipe. The math stays valid: the maximum possible score simply rises from 5.0 to 5.5 (1.0 + 1.0 + 3.0 + 0.5), with every term still non-negative and bounded.
+
+**Result — mostly "different," not clearly "more accurate."** For High-Energy Pop and Deep Intense Rock the top-5 *order* was unchanged (only the scores compressed, since genre now separates songs less). The one meaningful flip was in **Chill Lofi**:
+
+| Rank | Original recipe | After energy×2, genre÷2 |
+|---|---|---|
+| 3 | Focus Flow (lofi / focused) | **Spacewalk Thoughts (ambient / chill)** |
+| 4 | Spacewalk Thoughts (ambient / chill) | **Focus Flow (lofi / focused)** |
+
+With genre weighted less and energy more, a *cross-genre* song that matches mood and energy (ambient/chill, energy 0.28) overtook a *same-genre* song that only matched genre (lofi/focused). That's the recipe working as intended: the change loosens the genre "filter bubble" and lets nearer-energy songs from other genres rise. Whether that's *more accurate* depends on the user — a die-hard lofi fan would call it worse; someone open to discovery would call it better. I kept the original 2.0/1.5 weights because the assignment's design goal prioritizes a strong, predictable genre signal.
+
 ---
 
 ## Limitations and Risks
